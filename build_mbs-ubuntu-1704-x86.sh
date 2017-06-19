@@ -16,6 +16,9 @@ lxc launch ubuntu:17.04/i386 ${CONTAINER}
 # Maybe the output of "lxc list ..." is a good candidate.
 sleep 5
 
+# Remove the strange resolve entry.
+lxc exec ${CONTAINER} -- bash -c 'sed --expression="s/hosts:          files resolve \[\!UNAVAIL=return\] dns/hosts:          files dns [NOTFOUND=return]/" --in-place /etc/nsswitch.conf'
+
 # Install the common packages.
 lxc exec ${CONTAINER} -- apt-get update
 lxc exec ${CONTAINER} -- apt-get install --assume-yes curl gcc g++ git make python2.7
