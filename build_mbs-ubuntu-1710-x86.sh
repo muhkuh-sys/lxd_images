@@ -12,12 +12,28 @@ lxc image delete ${IMAGE} || echo "No existing image..."
 
 # Start a fresh container from the official image.
 lxc launch ubuntu:17.10/i386 ${CONTAINER}
-# FIXME: This waits until the network is up and running. It would be much better to poll on something.
-# Maybe the output of "lxc list ..." is a good candidate.
-sleep 5
 
-# Remove the strange resolve entry.
-lxc exec ${CONTAINER} -- bash -c 'sed --expression="s/hosts:          files resolve \[\!UNAVAIL=return\] dns/hosts:          files dns [NOTFOUND=return]/" --in-place /etc/nsswitch.conf'
+# Wait until the network is up and running.
+WAIT_CNT=0
+WAIT_MAX=30
+echo "Waiting for the network to come up (maximum ${WAIT_MAX} seconds)"
+while [ ${WAIT_CNT} -lt ${WAIT_MAX} ]; do
+	NETWORK_STATUS=`lxc exec ${CONTAINER} -- systemctl show --property=ActiveState systemd-resolved-update-resolvconf.path`
+	if [ "${NETWORK_STATUS}" = "ActiveState=active" ]; then
+		echo "OK, the network is up."
+		break
+	else
+		sleep 1
+		let WAIT_CNT=WAIT_CNT+1
+		echo "${WAIT_CNT}"
+	fi
+done
+if [ ${WAIT_CNT} -ge ${WAIT_MAX} ]; then
+	echo "The network did not come up!"
+	lxc stop ${CONTAINER}
+	lxc delete ${CONTAINER}
+	exit -1
+fi
 
 # Install the common packages.
 lxc exec ${CONTAINER} -- apt-get update
