@@ -12,6 +12,8 @@ lxc image delete ${IMAGE} || echo "No existing image..."
 
 # Start a fresh container from the official image.
 lxc launch ubuntu:17.10 ${CONTAINER}
+# Wait 4 seconds for the system to come up.
+sleep 4
 
 # Wait until the network is up and running.
 WAIT_CNT=0
